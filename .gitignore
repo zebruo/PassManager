@@ -1,0 +1,41 @@
+# PyInstaller
+build/
+dist/
+*.spec.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Backups
+*.bak
+*.bak.bak
+
+# Base de données (contient les mots de passe chiffrés)
+*.db
+*.sqlite
+*.sqlite3
+
+# Anciennes icônes PNG (remplacées par Font Awesome)
+*.png
+
+# Notes de développement
+*.txt
+!requirements.txt
+
+# Fichiers de sauvegarde d'éditeur
+*.psd
+*~
+.DS_Store
+Thumbs.db
+
+# Dossiers anciens
+old/
+old_icon/
+
+# Logs
+*.log
+
+# Interface de gestion Git
+git-manager/

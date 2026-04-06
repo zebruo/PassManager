@@ -1,0 +1,58 @@
+name: Build and Release PassManager
+
+# Déclenché automatiquement quand un tag v* est poussé (ex: v1.0.0)
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    permissions:
+      contents: write   # Nécessaire pour créer la release GitHub
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Build avec PyInstaller
+        run: pyinstaller PassManager.spec
+
+      - name: Extraire la version depuis le tag
+        id: tag
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}" -replace '^v', ''
+          echo "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Créer le zip portable
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist\PassManager.exe `
+            -DestinationPath "dist\PassManager-${{ steps.tag.outputs.version }}-portable.zip"
+
+      - name: Publier la release GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          name: PassManager v${{ steps.tag.outputs.version }}
+          body: |
+            ## PassManager v${{ steps.tag.outputs.version }}
+
+            ### Téléchargements
+            - **PassManager-${{ steps.tag.outputs.version }}-portable.zip** — Version portable, aucune installation requise (extraire et lancer `PassManager.exe`)
+
+            ### Compatibilité
+            Windows 10 / 11
+          files: |
+            dist/PassManager-${{ steps.tag.outputs.version }}-portable.zip
