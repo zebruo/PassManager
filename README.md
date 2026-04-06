@@ -21,7 +21,7 @@ A local, offline password manager built with Python and CustomTkinter. All data 
 - **Show / hide** — reveal individual passwords or all at once
 - **Auto-logout** — automatic lock after 1 hour of inactivity
 - **Encrypted export** — export the database as an encrypted `.db` backup file
-- **CSV export** — export all entries to a plain-text CSV (use with caution)
+- **CSV / TXT export** — export all entries to a plain-text CSV or TXT file (use with caution)
 - **Font Awesome icons** — crisp vector icons, no rendering artifacts
 - **Dark mode** — built-in dark theme
 

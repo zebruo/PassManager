@@ -21,7 +21,7 @@ Un gestionnaire de mots de passe local et hors-ligne, développé avec Python et
 - **Afficher / masquer** — révéler les mots de passe individuellement ou tous en même temps
 - **Déconnexion automatique** — verrouillage automatique après 1 heure d'inactivité
 - **Export chiffré** — exporter la base de données sous forme de fichier de sauvegarde `.db` chiffré
-- **Export CSV** — exporter toutes les entrées en CSV en clair (à utiliser avec précaution)
+- **Export CSV / TXT** — exporter toutes les entrées en clair dans un fichier CSV ou TXT (à utiliser avec précaution)
 - **Icônes Font Awesome** — icônes vectorielles nettes, sans artefacts visuels
 - **Mode sombre** — thème sombre intégré
 
