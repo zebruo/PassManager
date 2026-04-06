@@ -42,7 +42,7 @@ jobs:
       - name: Créer le zip portable
         shell: pwsh
         run: |
-          Compress-Archive -Path dist\PassManager.exe `
+          Compress-Archive -Path dist\PassManager `
             -DestinationPath "dist\PassManager-${{ steps.tag.outputs.version }}-portable.zip"
 
       - name: Installer Inno Setup

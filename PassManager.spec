@@ -265,24 +265,30 @@ pyz = PYZ(
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
+    exclude_binaries=True,
     name='PassManager',
     debug=False,
     bootloader_ignore_signals=False,
-    strip=True,           # Retire les symboles de débogage → plus léger
-    upx=True,             # Compression UPX (si disponible) → encore plus léger
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=False,        # Pas de console (GUI uniquement)
+    strip=True,
+    upx=True,
+    console=False,
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
     icon='passmanager_icon.ico',
-    version_file=None,    # Vous pouvez ajouter un fichier de version Windows
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=True,
+    upx=True,
+    upx_exclude=[],
+    name='PassManager',
 )
 
 # ========================================================
