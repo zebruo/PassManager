@@ -53,6 +53,9 @@ except ImportError:
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
+APP_VERSION = "1.0.1"
+APP_DATE = "06/04/2026"
+
 AUTO_LOGOUT_TIME = 60 * 60
 
 PALETTE = {
@@ -472,7 +475,7 @@ class PassManagerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("PassManager v1.0.0")
+        self.title(f"PassManager v{APP_VERSION}")
         self.geometry("950x650")
         self.minsize(950, 500)
 
@@ -1621,18 +1624,17 @@ class PassManagerApp(ctk.CTk):
         # Lire le fichier AIDE.md
         help_text = ""
         try:
-            # Chercher AIDE.md dans le même dossier que l'exécutable
-            aide_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "AIDE.md")
-            
-            # Si on est dans un exécutable PyInstaller
+            # Chercher AIDE.md selon le contexte d'exécution
             if getattr(sys, 'frozen', False):
-                aide_path = os.path.join(os.path.dirname(sys.executable), "AIDE.md")
+                aide_path = os.path.join(sys._MEIPASS, "AIDE.md")
+            else:
+                aide_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "AIDE.md")
             
             with open(aide_path, "r", encoding="utf-8") as f:
-                help_text = f.read()
+                help_text = f.read().replace("{VERSION}", APP_VERSION).replace("{DATE}", APP_DATE)
         except FileNotFoundError:
-            help_text = """
-# 🔐 PassManager - Guide d'utilisation
+            help_text = f"""
+# PassManager v{APP_VERSION} - Guide d'utilisation
 
 ⚠️ Le fichier d'aide (AIDE.md) n'a pas été trouvé.
 
@@ -1653,7 +1655,7 @@ C:\\Users\\monNomUtilisateur\\AppData\\Roaming\\PassManager\\passwords.db
 - Changer votre mot de passe maître
 
 ### Support
-Version: 6.0
+Version: {APP_VERSION}
 Développé par: edurel
 Usage: Non-commercial uniquement
             """

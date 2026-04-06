@@ -130,6 +130,9 @@ datas = []
 # Police Font Awesome (icônes)
 datas += [('fa-solid-900.ttf', '.')]
 
+# Fichier d'aide
+datas += [('AIDE.md', '.')]
+
 # CustomTkinter : inclure les thèmes et assets
 datas += collect_data_files("customtkinter", excludes=['__pycache__'])
 
@@ -247,10 +250,10 @@ a.datas = [x for x in a.datas if not (
     '.pyo' in x[0]
 )]
 
-# Retirer les fichiers de développement
-a.datas = [x for x in a.datas if not any(
-    keyword in x[0].lower() 
-    for keyword in ['readme', 'license', 'changelog', 'contributing', '.md', '.txt']
+# Retirer les fichiers de développement (conserver AIDE.md)
+a.datas = [x for x in a.datas if (
+    'aide.md' in x[0].lower()
+    or not any(keyword in x[0].lower() for keyword in ['readme', 'license', 'changelog', 'contributing', '.md', '.txt'])
 )]
 
 # ========================================================
