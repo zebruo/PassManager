@@ -472,7 +472,7 @@ class PassManagerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("PassManager Local_v12 🔐")
+        self.title("PassManager v1.0.0")
         self.geometry("950x650")
         self.minsize(950, 500)
 
