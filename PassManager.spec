@@ -127,6 +127,9 @@ hiddenimports += [
 # ========================================================
 datas = []
 
+# Police Font Awesome (icônes)
+datas += [('fa-solid-900.ttf', '.')]
+
 # CustomTkinter : inclure les thèmes et assets
 datas += collect_data_files("customtkinter", excludes=['__pycache__'])
 
