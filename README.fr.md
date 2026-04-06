@@ -103,6 +103,12 @@ git push origin v1.0.0
 
 ---
 
+## Auteur
+
+Développé par edurel avec [Claude AI](https://claude.ai) (Anthropic).
+
+---
+
 ## Licence
 
 MIT

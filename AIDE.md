@@ -22,7 +22,7 @@ rapidement les informations dans le presse-papier.
 est automatiquement effacé après 30 secondes.
 
 ### Modifier un mot de passe
-Cliquez sur le bouton crayon (✎) pour éditer une entrée existante.
+Survolez une ligne avec la souris et cliquez dessus pour éditer une entrée existante. Un tooltip "Modifier ce mot de passe" apparaît pour confirmer la zone cliquable.
 
 ### Supprimer un mot de passe
 Cliquez sur le bouton poubelle (🗑️) puis confirmez la suppression.
@@ -122,7 +122,7 @@ Pour protéger vos données :
 
 **Version**: {VERSION}
 **Date**: {DATE}
-**Développé par**: edurel  
+**Développé par**: edurel avec l'IA Claude (Anthropic)
 **Usage**: Non-commercial uniquement
 
 Pour toute question ou problème, référez-vous à la documentation ou contactez
