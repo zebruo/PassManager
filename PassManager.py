@@ -512,7 +512,10 @@ class PassManagerApp(ctk.CTk):
                 return ctk.CTkFont(family=name, size=size, weight="normal")
 
         # Sinon, charger depuis un fichier TTF local
-        base = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
+        if getattr(sys, 'frozen', False):
+            base = sys._MEIPASS  # dossier _internal/ dans le build PyInstaller
+        else:
+            base = os.path.dirname(os.path.abspath(__file__))
         for ttf in ("fa-solid-900.ttf", "Font Awesome 6 Free-Solid-900.otf", "Font Awesome 5 Free-Solid-900.otf"):
             fa_file = os.path.join(base, ttf)
             if os.path.exists(fa_file) and platform.system() == "Windows":
