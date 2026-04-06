@@ -3,6 +3,9 @@ build/
 dist/
 *.spec.bak
 
+# Inno Setup (output généré au build)
+installer/output/
+
 # Python
 __pycache__/
 *.py[cod]

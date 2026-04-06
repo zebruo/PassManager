@@ -45,6 +45,16 @@ jobs:
           Compress-Archive -Path dist\PassManager.exe `
             -DestinationPath "dist\PassManager-${{ steps.tag.outputs.version }}-portable.zip"
 
+      - name: Installer Inno Setup
+        run: choco install innosetup --yes
+
+      - name: Compiler le setup Inno Setup
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\PassManager.iss
+
       - name: Publier la release GitHub
         uses: softprops/action-gh-release@v2
         with:
@@ -53,9 +63,11 @@ jobs:
             ## PassManager v${{ steps.tag.outputs.version }}
 
             ### Téléchargements
-            - **PassManager-${{ steps.tag.outputs.version }}-portable.zip** — Version portable, aucune installation requise (extraire et lancer `PassManager.exe`)
+            - **PassManager-${{ steps.tag.outputs.version }}-Setup.exe** — Installation classique (Menu Démarrer, désinstalleur automatique)
+            - **PassManager-${{ steps.tag.outputs.version }}-portable.zip** — Version portable, aucune installation requise
 
             ### Compatibilité
             Windows 10 / 11
           files: |
+            installer/output/PassManager-${{ steps.tag.outputs.version }}-Setup.exe
             dist/PassManager-${{ steps.tag.outputs.version }}-portable.zip
