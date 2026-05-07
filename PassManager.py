@@ -53,24 +53,24 @@ except ImportError:
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
-APP_VERSION = "1.0.1"
-APP_DATE = "06/04/2026"
+APP_VERSION = "1.0.2"
+APP_DATE = "07/05/2026"
 
 AUTO_LOGOUT_TIME = 60 * 60
 
 PALETTE = {
-    "PRIMARY_FG": "#3FA7D6",
-    "PRIMARY_HOVER": "#2B8ABF",
-    "SECURITY_FG": "#2E8B57",
-    "SECURITY_HOVER": "#105F49",
-    "DANGER_FG": "#C54F59",
-    "DANGER_HOVER": "#9B454B",
-    "SECONDARY_FG": "#7A8C99",
-    "SECONDARY_HOVER": "#5A6A75",
-    "GLOBAL_FG": "#E0A243",
-    "GLOBAL_HOVER": "#C1872F",
-    "UTILITY_FG": "#6C7079",
-    "UTILITY_HOVER": "#52545A",
+    "PRIMARY_FG": "#3B81A1",
+    "PRIMARY_HOVER": "#1C5F83",
+    "SECURITY_FG": "#244643",
+    "SECURITY_HOVER": "#0a302d",
+    "DANGER_FG": "#CF3844",
+    "DANGER_HOVER": "#A12B33",
+    "SECONDARY_FG": "#677681",
+    "SECONDARY_HOVER": "#47545C",
+    "GLOBAL_FG": "#C28A37",
+    "GLOBAL_HOVER": "#A77224",
+    "UTILITY_FG": "#4B4D53",
+    "UTILITY_HOVER": "#3A3B41",
     # Lignes de la liste
     "ROW_EVEN_BG": "#2b2b2b",
     "ROW_ODD_BG": "#363636",
@@ -82,12 +82,12 @@ PALETTE = {
     "TOOLTIP_BG": "#333333",
     "TOOLTIP_FG": "#ffffff",
     # Couleurs des icônes Font Awesome
-    "ICON_EYE":      "#5BC8F5",  # Bleu clair  — afficher/masquer
-    "ICON_USER":     "#BBB6DB",  # Violet      — copier utilisateur
+    "ICON_EYE":      "#4AA4CA",  # Bleu clair  — afficher/masquer
+    "ICON_USER":     "#9F91EB",  # Violet      — copier utilisateur
     "ICON_KEY":      "#F5C842",  # Or          — copier mot de passe
-    "ICON_TRASH":    "#D69E9E",  # Rouge       — supprimer
+    "ICON_TRASH":    "#F1BEBE",  # Rouge       — supprimer
     "ICON_GENERATE": "#4CAF82",  # Vert        — générer
-    "ICON_UTILITY":  "#AAAAAA",  # Gris        — aide, base de données, effacer
+    "ICON_UTILITY":  "#E2E2E2",  # Gris        — aide, base de données, effacer
 }
 
 # Caractères Unicode Font Awesome 6 Free Solid
@@ -737,15 +737,38 @@ class PassManagerApp(ctk.CTk):
             frame, text="Entrez votre mot de passe maître", font=("Arial", 14)
         ).pack(pady=10)
 
+        login_pwd_frame = ctk.CTkFrame(frame, fg_color="transparent")
+        login_pwd_frame.pack(pady=15, padx=60)
+
         self.login_password_entry = ctk.CTkEntry(
-            frame,
+            login_pwd_frame,
             placeholder_text="Mot de passe maître",
             show="•",
-            width=300,
+            width=255,
             height=40,
         )
-        self.login_password_entry.pack(pady=15, padx=60)
+        self.login_password_entry.pack(side="left")
         self.login_password_entry.bind("<Return>", lambda e: self.verify_login())
+
+        self._login_pwd_visible = False
+
+        def toggle_login_pwd():
+            self._login_pwd_visible = not self._login_pwd_visible
+            self.login_password_entry.configure(show="" if self._login_pwd_visible else "•")
+            login_eye_btn.configure(text=self._icon("eye_slash" if self._login_pwd_visible else "eye"))
+
+        login_eye_btn = ctk.CTkButton(
+            login_pwd_frame,
+            text=self._icon("eye"),
+            font=self.fa_font,
+            text_color=PALETTE["ICON_EYE"],
+            width=30,
+            height=30,
+            fg_color=PALETTE["ROW_EVEN_BG"],
+            hover_color=PALETTE["ROW_EVEN_BG"],
+            command=toggle_login_pwd,
+        )
+        login_eye_btn.pack(side="left", padx=(2, 0))
         
         self.after(10, self.login_password_entry.focus_set)
 
@@ -1779,12 +1802,12 @@ Usage: Non-commercial uniquement
     def create_password_row(self, pwd_id, site, username, encrypted_pwd, note, is_odd_row):
         """Crée une ligne de mot de passe."""
         bg_color = PALETTE["ROW_ODD_BG"] if is_odd_row else PALETTE["ROW_EVEN_BG"]
-        hover_color = PALETTE["SECURITY_HOVER"]
+        hover_color = PALETTE["UTILITY_HOVER"]
 
-        row_frame = ctk.CTkFrame(self.scroll_frame, corner_radius=8, fg_color=bg_color)
+        row_frame = ctk.CTkFrame(self.scroll_frame, corner_radius=0, fg_color=bg_color)
         row_frame.pack(fill="x", pady=2, padx=5)
 
-        info_container = ctk.CTkFrame(row_frame, fg_color="transparent", cursor="hand2")
+        info_container = ctk.CTkFrame(row_frame, fg_color="transparent", corner_radius=0, cursor="hand2")
         info_container.pack(side="left", fill="both", expand=True)
 
         site_label = ctk.CTkLabel(info_container, text=site, font=("Arial", 12, "bold"), width=100, anchor="w")
@@ -1794,7 +1817,7 @@ Usage: Non-commercial uniquement
                                    width=90, text_color=PALETTE["TEXT_SECONDARY"], anchor="w")
         user_label.pack(side="left", padx=(0, 5), pady=10)
 
-        pwd_note_frame = ctk.CTkFrame(info_container, fg_color="transparent")
+        pwd_note_frame = ctk.CTkFrame(info_container, fg_color="transparent", corner_radius=0)
         pwd_note_frame.pack(side="left", padx=(0, 5))
 
         is_visible = pwd_id in self.visible_password_ids
@@ -1835,9 +1858,6 @@ Usage: Non-commercial uniquement
         button_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
         button_frame.pack(side="right", padx=10)
 
-        # Tooltip ancré sur button_frame : s'affiche juste à sa gauche
-        for widget in info_widgets:
-            ToolTip(widget, "Modifier ce mot de passe", anchor=button_frame)
 
         def toggle_password():
             self.update_activity()
