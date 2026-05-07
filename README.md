@@ -29,11 +29,12 @@ A local, offline password manager built with Python and CustomTkinter. All data 
 
 ## Installation
 
-### Option 1 — Portable executable (recommended)
+### Option 1 — Installer or portable (recommended)
 
-1. Download `PassManager-x.x.x-portable.zip` from the [Releases](../../releases) page
-2. Extract the zip
-3. Run `PassManager.exe` — no installation required
+Download the latest version from the [Releases](../../releases) page:
+
+- **`PassManager-x.x.x-Setup.exe`** — Classic installer (Start Menu shortcut, automatic uninstaller)
+- **`PassManager-x.x.x-portable.zip`** — Portable version, extract and run `PassManager.exe`, no installation required
 
 ### Option 2 — Run from source
 
@@ -98,6 +99,7 @@ Push a version tag to trigger an automated build and GitHub Release:
 
 ```bash
 git tag v1.0.0
+git push origin main
 git push origin v1.0.0
 ```
 

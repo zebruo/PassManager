@@ -29,11 +29,12 @@ Un gestionnaire de mots de passe local et hors-ligne, développé avec Python et
 
 ## Installation
 
-### Option 1 — Exécutable portable (recommandé)
+### Option 1 — Installateur ou portable (recommandé)
 
-1. Télécharger `PassManager-x.x.x-portable.zip` depuis la page [Releases](../../releases)
-2. Extraire le zip
-3. Lancer `PassManager.exe` — aucune installation requise
+Télécharger la dernière version depuis la page [Releases](../../releases) :
+
+- **`PassManager-x.x.x-Setup.exe`** — Installation classique (raccourci Menu Démarrer, désinstalleur automatique)
+- **`PassManager-x.x.x-portable.zip`** — Version portable, extraire et lancer `PassManager.exe`, aucune installation requise
 
 ### Option 2 — Lancer depuis les sources
 
@@ -98,6 +99,7 @@ Pousser un tag de version pour déclencher un build automatique et une release G
 
 ```bash
 git tag v1.0.0
+git push origin main
 git push origin v1.0.0
 ```
 
