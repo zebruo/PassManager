@@ -22,7 +22,7 @@ rapidement les informations dans le presse-papier.
 est automatiquement effacé après 30 secondes.
 
 ### Modifier un mot de passe
-Survolez une ligne avec la souris et cliquez dessus pour éditer une entrée existante. Un tooltip "Modifier ce mot de passe" apparaît pour confirmer la zone cliquable.
+Survolez une ligne avec la souris et cliquez dessus pour éditer une entrée existante.
 
 ### Supprimer un mot de passe
 Cliquez sur le bouton poubelle (🗑️) puis confirmez la suppression.

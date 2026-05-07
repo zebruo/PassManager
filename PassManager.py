@@ -53,7 +53,7 @@ except ImportError:
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
-APP_VERSION = "1.0.2"
+APP_VERSION = "1.0.3"
 APP_DATE = "07/05/2026"
 
 AUTO_LOGOUT_TIME = 60 * 60
@@ -922,8 +922,9 @@ class PassManagerApp(ctk.CTk):
             hover_color=PALETTE["UTILITY_HOVER"],
         )
         self.toggle_form_eye_button.pack(side="left", padx=(5, 0))
+        ToolTip(self.toggle_form_eye_button, "Afficher / Masquer le mot de passe")
 
-        ctk.CTkButton(
+        generate_btn = ctk.CTkButton(
             password_input_frame,
             text=self._icon("generate"),
             font=self.fa_font,
@@ -933,7 +934,9 @@ class PassManagerApp(ctk.CTk):
             height=35,
             fg_color=PALETTE["SECURITY_FG"],
             hover_color=PALETTE["SECURITY_HOVER"],
-        ).pack(side="left", padx=5)
+        )
+        generate_btn.pack(side="left", padx=5)
+        ToolTip(generate_btn, "Générer un mot de passe")
 
         form_fields_frame_2 = ctk.CTkFrame(form_frame, fg_color="transparent")
         form_fields_frame_2.pack(pady=5)
@@ -1640,8 +1643,7 @@ class PassManagerApp(ctk.CTk):
             font=("Arial", 20, "bold"),
         ).pack(pady=20)
 
-        # Zone de texte scrollable
-        help_frame = ctk.CTkScrollableFrame(help_window, width=700, height=500)
+        help_frame = ctk.CTkFrame(help_window)
         help_frame.pack(pady=10, padx=20, fill="both", expand=True)
 
         # Lire le fichier AIDE.md
@@ -1685,13 +1687,15 @@ Usage: Non-commercial uniquement
         except Exception as e:
             help_text = f"Erreur lors de la lecture du fichier d'aide: {str(e)}"
 
-        ctk.CTkLabel(
+        textbox = ctk.CTkTextbox(
             help_frame,
-            text=help_text,
             font=("Arial", 12),
-            justify="left",
-            anchor="w",
-        ).pack(fill="both", padx=20, pady=10)
+            wrap="word",
+            activate_scrollbars=True,
+        )
+        textbox.pack(fill="both", expand=True, padx=5, pady=5)
+        textbox.insert("1.0", help_text)
+        textbox.configure(state="disabled")
 
         # Bouton de fermeture
         ctk.CTkButton(
