@@ -6,9 +6,23 @@
 Remplissez les champs Site, Utilisateur et Mot de passe, puis cliquez sur "Ajouter".
 Vous pouvez également ajouter une note pour chaque entrée.
 
+### Indicateur de force du mot de passe
+Lors de la saisie ou de l'édition d'un mot de passe, 5 tirets apparaissent sous le champ :
+- ▬○○○○ **Rouge** — Très faible
+- ▬▬○○○ **Orange** — Faible
+- ▬▬▬○○ **Jaune** — Moyen
+- ▬▬▬▬○ **Vert clair** — Fort
+- ▬▬▬▬▬ **Vert foncé** — Très fort
+
+La force est calculée selon la longueur et les types de caractères utilisés (majuscules, minuscules, chiffres, symboles).
+
 ### Générer un mot de passe sécurisé
-Cliquez sur le bouton "Gen ✨" à côté du champ mot de passe.
-Configurez la longueur et les options (majuscules, chiffres, symboles).
+Cliquez sur le bouton "⚡" à côté du champ mot de passe.
+Configurez la longueur (8–32 caractères) et les options (majuscules, minuscules, chiffres, symboles).
+L'indicateur de force s'affiche en temps réel dans la fenêtre du générateur.
+
+⚠️ Le générateur utilise un algorithme cryptographique sécurisé (module `secrets`) pour garantir
+l'imprévisibilité des mots de passe générés.
 
 ### Afficher/Masquer les mots de passe
 Utilisez l'icône œil (👁) pour afficher temporairement un mot de passe.
@@ -29,7 +43,13 @@ Cliquez sur le bouton poubelle (🗑️) puis confirmez la suppression.
 
 ### Rechercher
 Utilisez la barre de recherche pour filtrer vos mots de passe par site,
-utilisateur ou note.
+utilisateur ou note. La recherche est insensible aux accents et à la casse.
+
+### Ancienneté des mots de passe
+Chaque entrée affiche l'âge du mot de passe sous la note :
+- **Gris** — Moins de 24 mois (à jour)
+- **Orange** — Plus de 24 mois (à renouveler)
+- **Rouge** — Plus de 36 mois (renouvellement urgent)
 
 ---
 
@@ -52,12 +72,24 @@ Tous vos mots de passe seront automatiquement rechiffrés.
 ## 💾 SAUVEGARDE & EXPORTATION
 
 ### Exporter les mots de passe (TEXTE CLAIR)
-Exporte tous vos mots de passe déchiffrés dans un fichier .txt ou .csv.
-⚠️ **ATTENTION**: Ces fichiers contiennent vos mots de passe en clair !
+Cliquez sur "Exporter Mots de Passe". Une fenêtre vous propose de choisir le format :
+- **Texte (.txt)** — Format lisible, une entrée par bloc
+- **CSV (.csv)** — Format compatible avec Chrome, Edge et Bitwarden (colonnes : name, url, username, password, note)
+
+⚠️ **ATTENTION** : Ces fichiers contiennent vos mots de passe en clair !
 
 ### Exporter la base de données (CHIFFRÉ)
 Crée une copie de sauvegarde de votre base de données chiffrée.
 Cette sauvegarde est sécurisée et peut être restaurée ultérieurement.
+
+### Importer un fichier CSV
+Cliquez sur "Importer CSV" pour importer des mots de passe depuis un autre gestionnaire.
+Formats supportés :
+- **Chrome / Edge** — Export via Paramètres > Mots de passe > Exporter
+- **Firefox** — Export via about:logins > Exporter les identifiants
+- **Bitwarden** — Export CSV depuis le coffre-fort (seules les entrées de type "login" sont importées)
+
+Les doublons sont importés sans vérification : vous pouvez nettoyer la liste manuellement après l'import.
 
 ---
 
@@ -107,6 +139,10 @@ Pour protéger vos données :
 
 ⚠️ **Important** : Sans votre mot de passe maître, il est **impossible** de récupérer vos données. Conservez-le précieusement !
 
+### Inspecter la base de données
+Pour consulter ou modifier directement la base de données, il vous faut un outil SQLite.
+Le plus simple est **DB Browser for SQLite** (gratuit) : https://sqlitebrowser.org
+
 ---
 
 ## ❓ ASTUCES
@@ -115,6 +151,7 @@ Pour protéger vos données :
 - Les tooltips (infobulles) vous guident au survol des boutons
 - Utilisez le bouton "Afficher tous les MdP" pour voir tous les mots de passe en même temps
 - Le générateur de mots de passe permet de créer des mots de passe très sécurisés
+- Surveillez les entrées en orange/rouge dans la liste pour renouveler vos mots de passe anciens
 
 ---
 

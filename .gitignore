@@ -42,3 +42,6 @@ old_icon/
 
 # Interface de gestion Git
 git-manager/
+
+#csv
+*.csv

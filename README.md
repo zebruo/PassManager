@@ -15,13 +15,16 @@ A local, offline password manager built with Python and CustomTkinter. All data 
 - **Master password** — single password to unlock the vault, derived with PBKDF2HMAC (SHA-256, 480 000 iterations)
 - **AES encryption** — all credentials encrypted with Fernet (AES-128-CBC) before being written to disk
 - **Local SQLite database** — stored in `%APPDATA%\PassManager\` on Windows, never in the app folder
-- **Password generator** — configurable length, uppercase, lowercase, digits, symbols
+- **Password generator** — configurable length, uppercase, lowercase, digits, symbols; uses the `secrets` module for cryptographic randomness
+- **Password strength indicator** — 5 colored bars updated in real time (Very Weak → Very Strong)
 - **Accent-insensitive search** — search `email` finds `émail`
 - **One-click copy** — copy username or password to clipboard with a single click
 - **Show / hide** — reveal individual passwords or all at once
+- **Password age** — color-coded age indicator per entry (grey < 24 months, orange ≥ 24 months, red ≥ 36 months)
 - **Auto-logout** — automatic lock after 1 hour of inactivity
 - **Encrypted export** — export the database as an encrypted `.db` backup file
 - **CSV / TXT export** — export all entries to a plain-text CSV or TXT file (use with caution)
+- **CSV import** — import passwords from Chrome, Edge, Firefox or Bitwarden
 - **Font Awesome icons** — crisp vector icons, no rendering artifacts
 - **Dark mode** — built-in dark theme
 

@@ -12,7 +12,9 @@ from tkinter import messagebox, filedialog, simpledialog
 import tkinter as tk
 import os
 import time
-import random
+import csv
+import datetime
+import secrets
 import string
 import unicodedata
 import sys
@@ -61,9 +63,9 @@ AUTO_LOGOUT_TIME = 60 * 60
 PALETTE = {
     "PRIMARY_FG": "#3B81A1",
     "PRIMARY_HOVER": "#1C5F83",
-    "SECURITY_FG": "#244643",
-    "SECURITY_HOVER": "#0a302d",
-    "DANGER_FG": "#CF3844",
+    "SECURITY_FG": "#2e7d32",
+    "SECURITY_HOVER": "#3d9441",
+    "DANGER_FG": "#EF5350",
     "DANGER_HOVER": "#A12B33",
     "SECONDARY_FG": "#677681",
     "SECONDARY_HOVER": "#47545C",
@@ -77,17 +79,23 @@ PALETTE = {
     # Textes
     "TEXT_PRIMARY": "#ffffff",
     "TEXT_SECONDARY": "#888888",
-    "TEXT_ERROR": "#ff4444",
+    "TEXT_ERROR": "#EF5350",
     # Tooltips
     "TOOLTIP_BG": "#333333",
     "TOOLTIP_FG": "#ffffff",
     # Couleurs des icônes Font Awesome
-    "ICON_EYE":      "#4AA4CA",  # Bleu clair  — afficher/masquer
-    "ICON_USER":     "#9F91EB",  # Violet      — copier utilisateur
-    "ICON_KEY":      "#F5C842",  # Or          — copier mot de passe
+    "ICON_EYE":      "#5E97AF",  # Bleu clair  — afficher/masquer
+    "ICON_USER":     "#8F7DFF",  # Violet      — copier utilisateur
+    "ICON_KEY":      "#FFD54F",  # Or          — copier mot de passe
     "ICON_TRASH":    "#F1BEBE",  # Rouge       — supprimer
-    "ICON_GENERATE": "#4CAF82",  # Vert        — générer
+    "ICON_GENERATE": "#D3ECE1",  # Vert        — générer
     "ICON_UTILITY":  "#E2E2E2",  # Gris        — aide, base de données, effacer
+    # Force du mot de passe
+    "STRENGTH_VERY_WEAK": "#EF5350",  # Rouge vif
+    "STRENGTH_WEAK":      "#FF8A65",  # Orange
+    "STRENGTH_MEDIUM":    "#FFD54F",  # Jaune ambré
+    "STRENGTH_STRONG":    "#66BB6A",  # Vert clair
+    "STRENGTH_VERY_STRONG": "#2E7D32", # Vert foncé
 }
 
 # Caractères Unicode Font Awesome 6 Free Solid
@@ -234,28 +242,6 @@ class PasswordManager:
         )
 
         conn.commit()
-        conn.close()
-
-        self._check_and_update_schema()
-
-    def _check_and_update_schema(self):
-        """Met à jour le schéma de la BD si nécessaire."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        try:
-            cursor.execute("SELECT encrypted_note FROM passwords LIMIT 1")
-            cursor.execute("ALTER TABLE passwords DROP COLUMN encrypted_note")
-            conn.commit()
-        except sqlite3.OperationalError:
-            pass
-
-        try:
-            cursor.execute("SELECT note FROM passwords LIMIT 1")
-        except sqlite3.OperationalError:
-            cursor.execute("ALTER TABLE passwords ADD COLUMN note TEXT")
-            conn.commit()
-            
         conn.close()
 
     def _normalize_string_for_search(self, text):
@@ -408,7 +394,7 @@ class PasswordManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id, site_url, username, encrypted_password, note FROM passwords ORDER BY site_url COLLATE NOCASE ASC"
+            "SELECT id, site_url, username, encrypted_password, note, creation_date FROM passwords ORDER BY site_url COLLATE NOCASE ASC"
         )
         results = cursor.fetchall()
         conn.close()
@@ -456,7 +442,7 @@ class PasswordManager:
 
         normalized_like = f"%{self._normalize_string_for_search(query)}%"
         cursor.execute(
-            """SELECT id, site_url, username, encrypted_password, note
+            """SELECT id, site_url, username, encrypted_password, note, creation_date
                FROM passwords
                WHERE normalize_text(site_url) LIKE ?
                   OR normalize_text(username) LIKE ?
@@ -488,7 +474,6 @@ class PassManagerApp(ctk.CTk):
         self.visible_password_ids = set()
 
         self.fa_font = self._load_fa_font(size=13)
-        self.fa_font_sm = self._load_fa_font(size=11)
 
         self.form_password_visible = False
 
@@ -498,6 +483,45 @@ class PassManagerApp(ctk.CTk):
             self.after(1, self.show_login_screen)
 
         self.check_inactivity()
+
+    def _password_strength(self, password):
+        """Retourne (nb_barres, couleur, label) selon la force du mot de passe."""
+        if not password:
+            return 0, "", ""
+        score = 0
+        if len(password) >= 8:  score += 1
+        if len(password) >= 12: score += 1
+        if len(password) >= 16: score += 1
+        if any(c.islower() for c in password): score += 1
+        if any(c.isupper() for c in password): score += 1
+        if any(c.isdigit() for c in password): score += 1
+        if any(c in string.punctuation for c in password): score += 1
+        if score <= 2:   return 1, PALETTE["STRENGTH_VERY_WEAK"],   "Très faible"
+        elif score == 3: return 2, PALETTE["STRENGTH_WEAK"],         "Faible"
+        elif score == 4: return 3, PALETTE["STRENGTH_MEDIUM"],       "Moyen"
+        elif score == 5: return 4, PALETTE["STRENGTH_STRONG"],       "Fort"
+        else:            return 5, PALETTE["STRENGTH_VERY_STRONG"],  "Très fort"
+
+    def _make_strength_bars(self, parent):
+        """Crée 5 barres + label de force. Retourne (bars, label)."""
+        frame = ctk.CTkFrame(parent, fg_color="transparent", corner_radius=0)
+        frame.pack(anchor="w", pady=0)
+        bars = []
+        for _ in range(5):
+            bar = ctk.CTkFrame(frame, width=26, height=5, corner_radius=2, fg_color="#444444")
+            bar.pack(side="left", padx=2)
+            bars.append(bar)
+        label = ctk.CTkLabel(frame, text="", font=("Arial", 10), width=70, anchor="w")
+        label.pack(side="left", padx=(8, 0))
+        return bars, label
+
+    def _update_strength_bars(self, bars, password, label=None):
+        """Met à jour les barres et le label de force selon le mot de passe."""
+        count, color, text = self._password_strength(password)
+        for i, bar in enumerate(bars):
+            bar.configure(fg_color=color if i < count else "#444444")
+        if label is not None:
+            label.configure(text=text, text_color=color if text else PALETTE["TEXT_SECONDARY"])
 
     def _load_fa_font(self, size=13):
         """Charge Font Awesome Free Solid. Cherche d'abord dans les polices système, puis dans le dossier de l'app."""
@@ -592,6 +616,37 @@ class PassManagerApp(ctk.CTk):
         finally:
             self.attributes("-topmost", False)
 
+    def _center_toplevel(self, toplevel, width, height):
+        """Centre un Toplevel sur la fenêtre principale."""
+        x = self.winfo_rootx() + (self.winfo_width() - width) // 2
+        y = self.winfo_rooty() + (self.winfo_height() - height) // 2
+        toplevel.geometry(f"{width}x{height}+{x}+{y}")
+
+    def _toggle_entry_visibility(self, entry, btn, attr_name):
+        """Bascule la visibilité d'un champ mot de passe."""
+        self.update_activity()
+        visible = not getattr(self, attr_name, False)
+        setattr(self, attr_name, visible)
+        entry.configure(show="" if visible else "•")
+        btn.configure(text=self._icon("eye_slash" if visible else "eye"))
+
+    def _is_master_password_valid(self, password):
+        """Retourne True si le mot de passe maître fait au moins 8 caractères."""
+        if not password or len(password) < 8:
+            self._force_dialog_on_top(
+                messagebox.showerror,
+                "Erreur",
+                "Le mot de passe doit contenir au moins 8 caractères.",
+            )
+            return False
+        return True
+
+    def _get_passwords(self, search_query=""):
+        """Retourne la liste des mots de passe selon la recherche."""
+        if search_query:
+            return self.pm.search_passwords(search_query)
+        return self.pm.get_all_passwords()
+
     def update_activity(self, event=None):
         """Met à jour le temps de la dernière activité."""
         if self.is_logged_in:
@@ -633,12 +688,6 @@ class PassManagerApp(ctk.CTk):
             self.unbind_all("<Button-1>")
 
             self.show_login_screen()
-            """if not auto:
-                self._force_dialog_on_top(
-                    messagebox.showinfo,
-                    "Déconnexion",
-                    "Vous avez été déconnecté avec succès.",
-                )"""
 
     def clear_window(self):
         """Efface tous les widgets de la fenêtre."""
@@ -695,12 +744,7 @@ class PassManagerApp(ctk.CTk):
         password = self.setup_password_entry.get()
         confirm = self.setup_confirm_entry.get()
 
-        if not password or len(password) < 8:
-            self._force_dialog_on_top(
-                messagebox.showerror,
-                "Erreur",
-                "Le mot de passe doit contenir au moins 8 caractères.",
-            )
+        if not self._is_master_password_valid(password):
             return
 
         if password != confirm:
@@ -752,11 +796,6 @@ class PassManagerApp(ctk.CTk):
 
         self._login_pwd_visible = False
 
-        def toggle_login_pwd():
-            self._login_pwd_visible = not self._login_pwd_visible
-            self.login_password_entry.configure(show="" if self._login_pwd_visible else "•")
-            login_eye_btn.configure(text=self._icon("eye_slash" if self._login_pwd_visible else "eye"))
-
         login_eye_btn = ctk.CTkButton(
             login_pwd_frame,
             text=self._icon("eye"),
@@ -766,7 +805,7 @@ class PassManagerApp(ctk.CTk):
             height=30,
             fg_color=PALETTE["ROW_EVEN_BG"],
             hover_color=PALETTE["ROW_EVEN_BG"],
-            command=toggle_login_pwd,
+            command=lambda: self._toggle_entry_visibility(self.login_password_entry, login_eye_btn, "_login_pwd_visible"),
         )
         login_eye_btn.pack(side="left", padx=(2, 0))
         
@@ -861,6 +900,16 @@ class PassManagerApp(ctk.CTk):
             width=150,
         ).pack(side="right", padx=5, pady=15)
 
+        # 2b. Importer CSV
+        ctk.CTkButton(
+            header_frame,
+            text="Importer CSV",
+            command=self.import_passwords_from_csv,
+            fg_color=PALETTE["SECONDARY_FG"],
+            hover_color=PALETTE["SECONDARY_HOVER"],
+            width=120,
+        ).pack(side="right", padx=5, pady=15)
+
         # 1. Changer mot de passe maître
         ctk.CTkButton(
             header_frame,
@@ -888,7 +937,7 @@ class PassManagerApp(ctk.CTk):
         self.site_entry = ctk.CTkEntry(
             form_fields_frame_1, placeholder_text="Site (URL/Nom)", width=250, height=35
         )
-        self.site_entry.pack(side="left", padx=5)
+        self.site_entry.pack(side="left", padx=5, anchor="n")
 
         self.username_entry = ctk.CTkEntry(
             form_fields_frame_1,
@@ -896,10 +945,10 @@ class PassManagerApp(ctk.CTk):
             width=250,
             height=35,
         )
-        self.username_entry.pack(side="left", padx=5)
+        self.username_entry.pack(side="left", padx=5, anchor="n")
 
-        password_input_frame = ctk.CTkFrame(form_fields_frame_1, fg_color="transparent")
-        password_input_frame.pack(side="left", padx=5)
+        password_input_frame = ctk.CTkFrame(form_fields_frame_1, fg_color="transparent", corner_radius=0)
+        password_input_frame.pack(side="left", padx=5, anchor="n")
 
         self.password_entry = ctk.CTkEntry(
             password_input_frame,
@@ -908,7 +957,7 @@ class PassManagerApp(ctk.CTk):
             width=250,
             height=35,
         )
-        self.password_entry.pack(side="left")
+        self.password_entry.grid(row=0, column=0)
 
         self.toggle_form_eye_button = ctk.CTkButton(
             password_input_frame,
@@ -921,7 +970,7 @@ class PassManagerApp(ctk.CTk):
             fg_color=PALETTE["UTILITY_FG"],
             hover_color=PALETTE["UTILITY_HOVER"],
         )
-        self.toggle_form_eye_button.pack(side="left", padx=(5, 0))
+        self.toggle_form_eye_button.grid(row=0, column=1, padx=(5, 0))
         ToolTip(self.toggle_form_eye_button, "Afficher / Masquer le mot de passe")
 
         generate_btn = ctk.CTkButton(
@@ -935,8 +984,14 @@ class PassManagerApp(ctk.CTk):
             fg_color=PALETTE["SECURITY_FG"],
             hover_color=PALETTE["SECURITY_HOVER"],
         )
-        generate_btn.pack(side="left", padx=5)
+        generate_btn.grid(row=0, column=2, padx=5)
         ToolTip(generate_btn, "Générer un mot de passe")
+
+        bars_container = ctk.CTkFrame(password_input_frame, fg_color="transparent", corner_radius=0)
+        bars_container.grid(row=1, column=0, columnspan=3, pady=0, sticky="w")
+        self.form_strength_bars, self.form_strength_label = self._make_strength_bars(bars_container)
+
+        self.password_entry.bind("<KeyRelease>", lambda _: self._update_form_strength())
 
         form_fields_frame_2 = ctk.CTkFrame(form_frame, fg_color="transparent")
         form_fields_frame_2.pack(pady=5)
@@ -1072,14 +1127,10 @@ class PassManagerApp(ctk.CTk):
         self.update_activity()
 
         search_query = self.search_entry.get() if hasattr(self, "search_entry") else ""
-        passwords = (
-            self.pm.search_passwords(search_query)
-            if search_query
-            else self.pm.get_all_passwords()
-        )
+        passwords = self._get_passwords(search_query)
 
         if self.show_all_passwords:
-            self.visible_password_ids = {pwd_id for pwd_id, _, _, _, _ in passwords}
+            self.visible_password_ids = {pwd_id for pwd_id, *_ in passwords}
             new_text = "Masquer tout les MdP"
         else:
             self.visible_password_ids = set()
@@ -1095,11 +1146,11 @@ class PassManagerApp(ctk.CTk):
 
         toplevel = ctk.CTkToplevel(self)
         toplevel.title("Générateur de Mot de Passe")
-        toplevel.geometry("350x450")
         toplevel.attributes("-topmost", True)
-
         toplevel.transient(self)
         toplevel.grab_set()
+
+        self._center_toplevel(toplevel, 350, 450)
 
         ctk.CTkLabel(
             toplevel, text="Longueur du mot de passe (8-32):", font=("Arial", 14)
@@ -1151,13 +1202,18 @@ class PassManagerApp(ctk.CTk):
             command=self._generate_password_display,
         ).pack(pady=5, padx=20, anchor="w")
 
+        result_container = ctk.CTkFrame(toplevel, fg_color="transparent")
+        result_container.pack(pady=(15, 5), padx=20)
+
         self.gen_result_entry = ctk.CTkEntry(
-            toplevel,
+            result_container,
             placeholder_text="Mot de passe généré",
             width=300,
             state="readonly",
         )
-        self.gen_result_entry.pack(pady=15, padx=20)
+        self.gen_result_entry.pack()
+
+        self.gen_strength_bars, self.gen_strength_label = self._make_strength_bars(result_container)
 
         button_gen_frame = ctk.CTkFrame(toplevel, fg_color="transparent")
         button_gen_frame.pack(pady=10)
@@ -1204,23 +1260,25 @@ class PassManagerApp(ctk.CTk):
 
         password = []
         if use_lower:
-            password.append(random.choice(string.ascii_lowercase))
+            password.append(secrets.choice(string.ascii_lowercase))
         if use_upper:
-            password.append(random.choice(string.ascii_uppercase))
+            password.append(secrets.choice(string.ascii_uppercase))
         if use_digits:
-            password.append(random.choice(string.digits))
+            password.append(secrets.choice(string.digits))
         if use_symbols:
             safe_symbols = "!@#$%^&*()-_+=[]{}|:<>?/.,"
-            password.append(random.choice(safe_symbols))
+            password.append(secrets.choice(safe_symbols))
 
         remaining_length = length - len(password)
         if remaining_length < 0:
             remaining_length = 0
             password = password[:length]
 
-        password += [random.choice(characters) for _ in range(remaining_length)]
+        password += [secrets.choice(characters) for _ in range(remaining_length)]
 
-        random.shuffle(password)
+        for i in range(len(password) - 1, 0, -1):
+            j = secrets.randbelow(i + 1)
+            password[i], password[j] = password[j], password[i]
         return "".join(password)
 
     def _generate_password_display(self):
@@ -1243,6 +1301,15 @@ class PassManagerApp(ctk.CTk):
             self.gen_result_entry.delete(0, "end")
             self.gen_result_entry.insert(0, generated_pwd)
             self.gen_result_entry.configure(state="readonly")
+            if hasattr(self, "gen_strength_bars"):
+                is_error = generated_pwd.startswith("ERREUR")
+                if is_error:
+                    for bar in self.gen_strength_bars:
+                        bar.configure(fg_color="#444444")
+                    if hasattr(self, "gen_strength_label"):
+                        self.gen_strength_label.configure(text="")
+                else:
+                    self._update_strength_bars(self.gen_strength_bars, generated_pwd, getattr(self, "gen_strength_label", None))
         except AttributeError:
             pass
         except Exception as e:
@@ -1267,27 +1334,44 @@ class PassManagerApp(ctk.CTk):
         self.form_password_visible = True
         self.password_entry.configure(show="")
         self.toggle_form_eye_button.configure(text=self._icon("eye_slash"))
+        self._update_form_strength()
 
         toplevel.destroy()
-        """self._force_dialog_on_top(
-            messagebox.showinfo,
-            "Générateur",
-            "Mot de passe inséré dans le formulaire !",
-        )"""
+
+    def _format_age(self, creation_date_str):
+        """Retourne (texte, couleur) selon l'ancienneté du mot de passe."""
+        if not creation_date_str:
+            return "date inconnue", PALETTE["TEXT_SECONDARY"]
+        try:
+            created = datetime.datetime.strptime(creation_date_str[:19], "%Y-%m-%d %H:%M:%S")
+            months = (datetime.datetime.now().year - created.year) * 12 + \
+                     (datetime.datetime.now().month - created.month)
+            if months < 1:
+                text = "moins d'1 mois"
+            elif months < 12:
+                text = f"{months} mois"
+            else:
+                y, m = divmod(months, 12)
+                text = f"{y} an{'s' if y > 1 else ''}" + (f" {m} mois" if m else "")
+            if months >= 36:
+                color = PALETTE["DANGER_FG"]
+            elif months >= 24:
+                color = PALETTE["STRENGTH_WEAK"]
+            else:
+                color = PALETTE["TEXT_SECONDARY"]
+            return text, color
+        except Exception:
+            return "date inconnue", PALETTE["TEXT_SECONDARY"]
+
+    def _update_form_strength(self):
+        """Met à jour les barres de force du mot de passe dans le formulaire."""
+        if not hasattr(self, "form_strength_bars"):
+            return
+        self._update_strength_bars(self.form_strength_bars, self.password_entry.get(), getattr(self, "form_strength_label", None))
 
     def toggle_form_password_visibility(self):
         """Affiche ou masque le mot de passe dans le champ du formulaire."""
-        self.update_activity()
-        self.form_password_visible = not self.form_password_visible
-
-        if self.form_password_visible:
-            self.password_entry.configure(show="")
-            self.toggle_form_eye_button.configure(text=self._icon("eye_slash"))
-        else:
-            self.password_entry.configure(show="•")
-            self.toggle_form_eye_button.configure(
-                text=self._icon("eye"),
-            )
+        self._toggle_entry_visibility(self.password_entry, self.toggle_form_eye_button, "form_password_visible")
 
     def edit_password(self, password_id, site, username, encrypted_pwd, note):
         """Prépare l'édition d'un mot de passe et de sa note."""
@@ -1314,6 +1398,8 @@ class PassManagerApp(ctk.CTk):
             self.note_entry.delete(0, "end")
             self.note_entry.insert(0, decrypted_note)
             self.note_entry.configure(show="")
+
+            self._update_form_strength()
 
             self.form_title_label.configure(text="Modifier un mot de passe")
             self.submit_button.configure(
@@ -1359,6 +1445,11 @@ class PassManagerApp(ctk.CTk):
                 fg_color=PALETTE["UTILITY_FG"],
                 hover_color=PALETTE["UTILITY_HOVER"],
             )
+        if hasattr(self, "form_strength_bars"):
+            for bar in self.form_strength_bars:
+                bar.configure(fg_color="#444444")
+        if hasattr(self, "form_strength_label"):
+            self.form_strength_label.configure(text="")
 
         self.note_entry.configure(show="")
 
@@ -1384,8 +1475,8 @@ class PassManagerApp(ctk.CTk):
 
         btn.configure(
             text=self._icon("check"),
-            fg_color=PALETTE["GLOBAL_FG"],
-            hover_color=PALETTE["GLOBAL_HOVER"],
+            fg_color=PALETTE["SECURITY_FG"],
+            hover_color=PALETTE["SECURITY_HOVER"],
         )
 
         self.after(
@@ -1397,8 +1488,8 @@ class PassManagerApp(ctk.CTk):
             ),
         )
 
-    def copy_text_to_clipboard(self, text_to_copy, btn):
-        """Copie une chaîne de données en clair dans le presse-papiers."""
+    def _copy_to_clipboard(self, text, btn, encrypted=False):
+        """Copie dans le presse-papiers (déchiffre si encrypted=True)."""
         if pyperclip is None:
             self._force_dialog_on_top(
                 messagebox.showerror,
@@ -1406,39 +1497,12 @@ class PassManagerApp(ctk.CTk):
                 "La librairie 'pyperclip' n'est pas installée. Impossible de copier.",
             )
             return
-
         try:
-            pyperclip.copy(text_to_copy)
+            value = self.pm.decrypt(text) if encrypted else text
+            pyperclip.copy(value)
             self.update_activity()
-            self._set_copy_feedback(btn, is_password=False)
-            
-            # Effacer le presse-papier après 30 secondes
-            self._schedule_clipboard_clear(text_to_copy)
-            
-        except Exception as e:
-            self._force_dialog_on_top(
-                messagebox.showerror, "Erreur", f"Erreur lors de la copie: {str(e)}"
-            )
-
-    def copy_password_to_clipboard(self, encrypted_password, btn):
-        """Déchiffre et copie le mot de passe dans le presse-papiers."""
-        if pyperclip is None:
-            self._force_dialog_on_top(
-                messagebox.showerror,
-                "Erreur",
-                "La librairie 'pyperclip' n'est pas installée. Impossible de copier.",
-            )
-            return
-
-        try:
-            decrypted = self.pm.decrypt(encrypted_password)
-            pyperclip.copy(decrypted)
-            self.update_activity()
-            self._set_copy_feedback(btn, is_password=True)
-            
-            # Effacer le presse-papier après 30 secondes
-            self._schedule_clipboard_clear(decrypted)
-
+            self._set_copy_feedback(btn, is_password=encrypted)
+            self._schedule_clipboard_clear(value)
         except Exception as e:
             self._force_dialog_on_top(
                 messagebox.showerror, "Erreur", f"Erreur lors de la copie: {str(e)}"
@@ -1531,20 +1595,146 @@ class PassManagerApp(ctk.CTk):
                     f"Erreur lors de la suppression : {str(e)}",
                 )
 
+    def import_passwords_from_csv(self):
+        """Importe des mots de passe depuis un CSV (Chrome, Firefox, Bitwarden)."""
+        self.update_activity()
+
+        file_path = self._force_dialog_on_top(
+            filedialog.askopenfilename,
+            "Importer des mots de passe",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+        )
+        if not file_path:
+            return
+
+        try:
+            with open(file_path, newline="", encoding="utf-8-sig") as f:
+                reader = csv.DictReader(f)
+                raw_headers = reader.fieldnames or []
+                norm = lambda s: s.strip().lower()
+                lc_headers = [norm(h) for h in raw_headers]
+                rows = [{norm(k): v for k, v in row.items()} for row in reader]
+
+            if "login_username" in lc_headers:
+                site_col, user_col, pwd_col, note_col, type_col = (
+                    "name", "login_uri", "login_username", "login_password", "notes",
+                )
+                type_col = "type"
+                fmt_name = "Bitwarden"
+            elif "username" in lc_headers and ("url" in lc_headers or "login_uri" in lc_headers):
+                site_col = "name" if "name" in lc_headers else "url"
+                user_col = "username"
+                pwd_col = "password"
+                type_col = None
+                note_col = "note" if "note" in lc_headers else None
+                fmt_name = "Chrome/Edge/Firefox/PassManager"
+            else:
+                self._force_dialog_on_top(
+                    messagebox.showerror,
+                    "Format non reconnu",
+                    f"Format CSV non reconnu.\nEn-têtes détectées : {', '.join(raw_headers) or '(aucune)'}\nFormats supportés : Chrome, Edge, Firefox, Bitwarden.",
+                )
+                return
+
+            imported = 0
+            skip_site = skip_user = skip_pwd = skip_type = 0
+            for row in rows:
+                if type_col and row.get(type_col, "").strip().lower() != "login":
+                    skip_type += 1
+                    continue
+
+                site = (row.get(site_col) or row.get("url") or "").strip()
+                username = (row.get(user_col) or "").strip()
+                password = (row.get(pwd_col) or "").strip()
+                note = (row.get(note_col) or "").strip() if note_col else ""
+
+                if not site:
+                    skip_site += 1
+                    continue
+                if not username:
+                    skip_user += 1
+                    continue
+                if not password:
+                    skip_pwd += 1
+                    continue
+
+                self.pm.add_password(site, username, password, note)
+                imported += 1
+
+            skipped = skip_site + skip_user + skip_pwd + skip_type
+            reason_parts = []
+            if skip_type:
+                reason_parts.append(f"{skip_type} non-login")
+            if skip_site:
+                reason_parts.append(f"{skip_site} site vide")
+            if skip_user:
+                reason_parts.append(f"{skip_user} utilisateur vide")
+            if skip_pwd:
+                reason_parts.append(f"{skip_pwd} mot de passe vide")
+            reason_str = ", ".join(reason_parts) if reason_parts else "aucune"
+
+            self.refresh_password_list()
+            self._force_dialog_on_top(
+                messagebox.showinfo,
+                "Import terminé",
+                f"Format détecté : {fmt_name}\n"
+                f"{len(rows)} ligne(s) dans le fichier\n"
+                f"{imported} entrée(s) importée(s)\n"
+                f"{skipped} ignorée(s) : {reason_str}",
+            )
+
+        except Exception as e:
+            self._force_dialog_on_top(
+                messagebox.showerror,
+                "Erreur d'importation",
+                f"Échec de l'importation : {str(e)}",
+            )
+
     def export_passwords_to_file(self):
         """Déchiffre et exporte tous les mots de passe vers un fichier choisi."""
         self.update_activity()
 
+        chosen_format = {"value": None}
+
+        fmt_dialog = ctk.CTkToplevel(self)
+        fmt_dialog.title("Format d'exportation")
+        fmt_dialog.resizable(False, False)
+        fmt_dialog.transient(self)
+        fmt_dialog.grab_set()
+        fmt_dialog.attributes("-topmost", True)
+
+        self._center_toplevel(fmt_dialog, 300, 150)
+
+        ctk.CTkLabel(fmt_dialog, text="Choisissez le format d'export :", font=("Arial", 13)).pack(pady=(20, 10))
+
+        btn_frame = ctk.CTkFrame(fmt_dialog, fg_color="transparent")
+        btn_frame.pack()
+
+        def pick(fmt):
+            chosen_format["value"] = fmt
+            fmt_dialog.destroy()
+
+        ctk.CTkButton(btn_frame, text="Texte (.txt)", width=120,
+                      fg_color=PALETTE["SECONDARY_FG"], hover_color=PALETTE["SECONDARY_HOVER"],
+                      command=lambda: pick("txt")).pack(side="left", padx=10)
+        ctk.CTkButton(btn_frame, text="CSV (.csv)", width=120,
+                      fg_color=PALETTE["PRIMARY_FG"], hover_color=PALETTE["PRIMARY_HOVER"],
+                      command=lambda: pick("csv")).pack(side="left", padx=10)
+
+        self.wait_window(fmt_dialog)
+
+        if not chosen_format["value"]:
+            return
+
+        is_csv = chosen_format["value"] == "csv"
+        ext = ".csv" if is_csv else ".txt"
+
         file_path = self._force_dialog_on_top(
             filedialog.asksaveasfilename,
             "Exporter les mots de passe",
-            defaultextension=".txt",
-            filetypes=[
-                ("Text files", "*.txt"),
-                ("CSV files", "*.csv"),
-                ("All files", "*.*"),
-            ],
-            initialfile="passwords_export.txt",
+            defaultextension=ext,
+            filetypes=[("CSV files", "*.csv")] if is_csv else [("Text files", "*.txt")],
+            initialfile=f"passwords_export{ext}",
         )
 
         if not file_path:
@@ -1553,25 +1743,35 @@ class PassManagerApp(ctk.CTk):
         try:
             passwords = self.pm.get_all_passwords()
 
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write("--- PassManager Exportation Sécurisée ---\n\n")
-                f.write("ATTENTION: Ce fichier contient les mots de passe en CLAIR.\n")
-                f.write("Ne le stockez pas sans sécurité supplémentaire.\n\n")
+            count = 0
+            with open(file_path, "w", encoding="utf-8-sig", newline="") as f:
+                if is_csv:
+                    writer = csv.writer(f)
+                    writer.writerow(["name", "url", "username", "password", "note"])
+                    for row in passwords:
+                        _, site, username, encrypted_pwd, note = row[:5]
+                        note_clean = (note or "").replace("\r", "").replace("\n", " ")
+                        writer.writerow([site, site, username, self.pm.decrypt(encrypted_pwd), note_clean])
+                        count += 1
+                else:
+                    f.write("--- PassManager Exportation Sécurisée ---\n\n")
+                    f.write("ATTENTION: Ce fichier contient les mots de passe en CLAIR.\n")
+                    f.write("Ne le stockez pas sans sécurité supplémentaire.\n\n")
 
-                for _, site, username, encrypted_pwd, note in passwords:
-                    decrypted_pwd = self.pm.decrypt(encrypted_pwd)
-                    decrypted_note = note if note else ""
-
-                    f.write(f"Site: {site}\n")
-                    f.write(f"Utilisateur: {username}\n")
-                    f.write(f"Mot de passe: {decrypted_pwd}\n")
-                    f.write(f"Note: {decrypted_note}\n")
-                    f.write("-" * 50 + "\n")
+                    for row in passwords:
+                        _, site, username, encrypted_pwd, note = row[:5]
+                        decrypted_pwd = self.pm.decrypt(encrypted_pwd)
+                        f.write(f"Site: {site}\n")
+                        f.write(f"Utilisateur: {username}\n")
+                        f.write(f"Mot de passe: {decrypted_pwd}\n")
+                        f.write(f"Note: {note if note else ''}\n")
+                        f.write("-" * 50 + "\n")
+                        count += 1
 
             self._force_dialog_on_top(
                 messagebox.showinfo,
                 "Succès Exportation",
-                f"Tous les mots de passe ont été exportés vers:\n{file_path}",
+                f"{count} mot(s) de passe exporté(s) vers :\n{file_path}",
             )
 
         except Exception as e:
@@ -1735,12 +1935,7 @@ Usage: Non-commercial uniquement
             "NOUVEAU MOT DE PASSE MAÎTRE (min 8 car.)",
             show="*",
         )
-        if not new_password or len(new_password) < 8:
-            self._force_dialog_on_top(
-                messagebox.showerror,
-                "Erreur",
-                "Le nouveau mot de passe doit contenir au moins 8 caractères.",
-            )
+        if not self._is_master_password_valid(new_password):
             return
 
         confirm_password = self._force_dialog_on_top(
@@ -1780,12 +1975,10 @@ Usage: Non-commercial uniquement
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
 
-        if search_query:
-            passwords = self.pm.search_passwords(search_query)
-            self.list_title_label.configure(text=f"Mots de passe trouvés ({len(passwords)})")
-        else:
-            passwords = self.pm.get_all_passwords()
-            self.list_title_label.configure(text=f"Mots de passe enregistrés ({len(passwords)})")
+        passwords = self._get_passwords(search_query)
+        self.list_title_label.configure(
+            text=f"Mots de passe {'trouvés' if search_query else 'enregistrés'} ({len(passwords)})"
+        )
 
         if not passwords:
             ctk.CTkLabel(
@@ -1796,14 +1989,14 @@ Usage: Non-commercial uniquement
             ).pack(pady=20)
             return
 
-        for index, (pwd_id, site, username, encrypted_pwd, note) in enumerate(passwords):
-            self.create_password_row(pwd_id, site, username, encrypted_pwd, note, index % 2 == 1)
+        for index, (pwd_id, site, username, encrypted_pwd, note, creation_date) in enumerate(passwords):
+            self.create_password_row(pwd_id, site, username, encrypted_pwd, note, creation_date, index % 2 == 1)
 
         # Force l'exécution de tous les draw() en attente (CTkButton renders images via after_idle)
         self.update_idletasks()
         self.scroll_frame._parent_canvas.yview_moveto(0)
 
-    def create_password_row(self, pwd_id, site, username, encrypted_pwd, note, is_odd_row):
+    def create_password_row(self, pwd_id, site, username, encrypted_pwd, note, creation_date, is_odd_row):
         """Crée une ligne de mot de passe."""
         bg_color = PALETTE["ROW_ODD_BG"] if is_odd_row else PALETTE["ROW_EVEN_BG"]
         hover_color = PALETTE["UTILITY_HOVER"]
@@ -1842,6 +2035,11 @@ Usage: Non-commercial uniquement
                                    font=("Arial", 9), width=150, text_color=PALETTE["TEXT_SECONDARY"], anchor="w")
         note_label.pack(anchor="w", pady=(2, 0))
 
+        age_text, age_color = self._format_age(creation_date)
+        age_label = ctk.CTkLabel(pwd_note_frame, text=f" ⏱ {age_text}",
+                                  font=("Arial", 9), width=150, text_color=age_color, anchor="w")
+        age_label.pack(anchor="w")
+
         def on_info_click(event):
             self.edit_password(pwd_id, site, username, encrypted_pwd, note)
 
@@ -1853,7 +2051,7 @@ Usage: Non-commercial uniquement
             info_container.configure(fg_color="transparent")
             pwd_note_frame.configure(fg_color="transparent")
 
-        info_widgets = (info_container, site_label, user_label, pwd_note_frame, password_label, note_label)
+        info_widgets = (info_container, site_label, user_label, pwd_note_frame, password_label, note_label, age_label)
         for widget in info_widgets:
             widget.bind("<Button-1>", on_info_click)
             widget.bind("<Enter>", on_info_enter)
@@ -1893,7 +2091,7 @@ Usage: Non-commercial uniquement
                                        text_color=PALETTE["ICON_USER"],
                                        width=32, height=28,
                                        fg_color=PALETTE["SECONDARY_FG"], hover_color=PALETTE["SECONDARY_HOVER"])
-        user_copy_btn.configure(command=lambda btn=user_copy_btn: self.copy_text_to_clipboard(username, btn=btn))
+        user_copy_btn.configure(command=lambda btn=user_copy_btn: self._copy_to_clipboard(username, btn))
         user_copy_btn.pack(side="left", padx=2)
         ToolTip(user_copy_btn, "Copier l'utilisateur")
 
@@ -1901,7 +2099,7 @@ Usage: Non-commercial uniquement
                                       text_color=PALETTE["ICON_KEY"],
                                       width=32, height=28,
                                       fg_color=PALETTE["SECONDARY_FG"], hover_color=PALETTE["SECONDARY_HOVER"])
-        pwd_copy_btn.configure(command=lambda btn=pwd_copy_btn: self.copy_password_to_clipboard(encrypted_pwd, btn=btn))
+        pwd_copy_btn.configure(command=lambda btn=pwd_copy_btn: self._copy_to_clipboard(encrypted_pwd, btn, encrypted=True))
         pwd_copy_btn.pack(side="left", padx=2)
         ToolTip(pwd_copy_btn, "Copier le mot de passe")
 

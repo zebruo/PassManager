@@ -15,13 +15,16 @@ Un gestionnaire de mots de passe local et hors-ligne, développé avec Python et
 - **Mot de passe maître** — un seul mot de passe pour déverrouiller le coffre, dérivé avec PBKDF2HMAC (SHA-256, 480 000 itérations)
 - **Chiffrement AES** — toutes les entrées sont chiffrées avec Fernet (AES-128-CBC) avant d'être écrites sur le disque
 - **Base de données SQLite locale** — stockée dans `%APPDATA%\PassManager\` sous Windows, jamais dans le dossier de l'application
-- **Générateur de mots de passe** — longueur configurable, majuscules, minuscules, chiffres, symboles
+- **Générateur de mots de passe** — longueur configurable, majuscules, minuscules, chiffres, symboles ; utilise le module `secrets` pour un aléatoire cryptographique
+- **Indicateur de force** — 5 barres colorées mises à jour en temps réel (Très faible → Très fort)
 - **Recherche insensible aux accents** — rechercher `email` trouve `émail`
 - **Copie en un clic** — copier le nom d'utilisateur ou le mot de passe dans le presse-papiers en un seul clic
 - **Afficher / masquer** — révéler les mots de passe individuellement ou tous en même temps
+- **Ancienneté des mots de passe** — indicateur coloré par entrée (gris < 24 mois, orange ≥ 24 mois, rouge ≥ 36 mois)
 - **Déconnexion automatique** — verrouillage automatique après 1 heure d'inactivité
 - **Export chiffré** — exporter la base de données sous forme de fichier de sauvegarde `.db` chiffré
 - **Export CSV / TXT** — exporter toutes les entrées en clair dans un fichier CSV ou TXT (à utiliser avec précaution)
+- **Import CSV** — importer des mots de passe depuis Chrome, Edge, Firefox ou Bitwarden
 - **Icônes Font Awesome** — icônes vectorielles nettes, sans artefacts visuels
 - **Mode sombre** — thème sombre intégré
 
