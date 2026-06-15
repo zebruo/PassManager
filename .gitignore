@@ -21,7 +21,7 @@ __pycache__/
 *.sqlite3
 
 # Anciennes icônes PNG (remplacées par Font Awesome)
-*.png
+png/
 
 # Notes de développement
 *.txt

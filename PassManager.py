@@ -416,10 +416,22 @@ class PasswordManager:
 
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        cursor.execute(
-            "UPDATE passwords SET site_url = ?, username = ?, encrypted_password = ?, note = ? WHERE id = ?",
-            (site_url, username, encrypted_pwd, note_to_save, password_id),
-        )
+
+        cursor.execute("SELECT encrypted_password FROM passwords WHERE id = ?", (password_id,))
+        row = cursor.fetchone()
+        password_changed = row is None or self.decrypt(row[0]) != password
+
+        if password_changed:
+            cursor.execute(
+                "UPDATE passwords SET site_url = ?, username = ?, encrypted_password = ?, note = ?, creation_date = CURRENT_TIMESTAMP WHERE id = ?",
+                (site_url, username, encrypted_pwd, note_to_save, password_id),
+            )
+        else:
+            cursor.execute(
+                "UPDATE passwords SET site_url = ?, username = ?, encrypted_password = ?, note = ? WHERE id = ?",
+                (site_url, username, encrypted_pwd, note_to_save, password_id),
+            )
+
         conn.commit()
         conn.close()
 
