@@ -40,8 +40,8 @@ old_icon/
 # Logs
 *.log
 
-# Interface de gestion Git
-git-manager/
-
 #csv
 *.csv
+
+# Config éditeur
+.vscode/
