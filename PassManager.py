@@ -55,8 +55,8 @@ except ImportError:
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
-APP_VERSION = "1.0.4"
-APP_DATE = "15/06/2026"
+APP_VERSION = "1.0.5"
+APP_DATE = "18/11/2026"
 
 AUTO_LOGOUT_TIME = 60 * 60
 
