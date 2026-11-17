@@ -1303,25 +1303,25 @@ class PassManagerApp(ctk.CTk):
             use_symbols = self.gen_symbols_var.get()
 
             if not any([use_upper, use_lower, use_digits, use_symbols]):
-                generated_pwd = "ERREUR: Sélectionnez un type de caractère."
+                generated_value = "ERREUR: Sélectionnez un type de caractère."
             else:
-                generated_pwd = self._generate_password_logic(
+                generated_value = self._generate_password_logic(
                     length, use_upper, use_lower, use_digits, use_symbols
                 )
 
             self.gen_result_entry.configure(state="normal")
             self.gen_result_entry.delete(0, "end")
-            self.gen_result_entry.insert(0, generated_pwd)
+            self.gen_result_entry.insert(0, generated_value)
             self.gen_result_entry.configure(state="readonly")
             if hasattr(self, "gen_strength_bars"):
-                is_error = generated_pwd.startswith("ERREUR")
+                is_error = generated_value.startswith("ERREUR")
                 if is_error:
                     for bar in self.gen_strength_bars:
                         bar.configure(fg_color="#444444")
                     if hasattr(self, "gen_strength_label"):
                         self.gen_strength_label.configure(text="")
                 else:
-                    self._update_strength_bars(self.gen_strength_bars, generated_pwd, getattr(self, "gen_strength_label", None))
+                    self._update_strength_bars(self.gen_strength_bars, generated_value, getattr(self, "gen_strength_label", None))
         except AttributeError:
             pass
         except Exception as e:
